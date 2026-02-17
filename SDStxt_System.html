@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SDS System v3.5</title>
+    <style>
+        :root { 
+            --emerald-main: #4da699; --emerald-light: #e0f2f1; --emerald-dark: #2d6a61; 
+            --bg: #f5fbfb; --card: #ffffff; --text: #334e4a; --input-bg: #ffffff;
+            --border: #c8e6e1; --accent: #ff8a80;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --emerald-main: #4da699; --emerald-light: #1c2b2b; --emerald-dark: #81cbc0;
+                --bg: #0d1111; --card: #161d1d; --text: #d1dada; --input-bg: #0a0e0e; --border: #243333;
+            }
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        .container { width: 100%; max-width: 400px; background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        h1 { font-size: 1.1rem; color: var(--emerald-dark); text-align: center; margin: 0 0 15px 0; letter-spacing: 2px; }
+        .section { margin-bottom: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+        label { display: block; margin-bottom: 8px; font-size: 0.75rem; color: var(--emerald-main); font-weight: bold; }
+        select, textarea, input { width: 100%; padding: 10px; background: var(--input-bg); color: var(--text); border: 2px solid var(--border); border-radius: 10px; font-size: 16px; appearance: none; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+        .opt-btn { background: var(--input-bg); padding: 12px 5px; border-radius: 8px; border: 2px solid var(--border); text-align: center; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .opt-btn.active { background: var(--emerald-main); color: #fff; border-color: var(--emerald-main); }
+        .opt-btn.accent.active { background: var(--accent); border-color: var(--accent); }
+        .counter-wrap { text-align: right; font-size: 0.7rem; color: var(--emerald-main); margin-top: 4px; }
+        .main-btn { width: 100%; padding: 16px; background: var(--emerald-main); color: #fff; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; margin-top: 10px; cursor: pointer; }
+        #resultText { height: 160px; margin-top: 15px; border: 2px solid var(--emerald-main); background: var(--input-bg); color: var(--text); font-size: 0.85rem; resize: none; width: 100%; padding: 10px; border-radius: 10px; }
+        .btn-copy { width: 100%; padding: 12px; background: var(--emerald-light); color: var(--emerald-dark); border: none; border-radius: 10px; margin-top: 10px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>𝐒𝐃𝐒 𝐆𝐄𝐍𝐄𝐑𝐀𝐓𝐎𝐑</h1>
+
+    <div class="grid-2">
+        <div>
+            <label>TYPE</label>
+            <select id="mode" onchange="updateBodyOptions()">
+                <option value="OPEN">【開店】OPEN</option>
+                <option value="CALL">【呼び込み】CALL</option>
+                <option value="RESERVE">【告知】RESERVE</option>
+                <option value="CLOSED">【閉店】CLOSED</option>
+            </select>
+        </div>
+        <div>
+            <label>EVENT MODE</label>
+            <select id="isEvent" onchange="updateBodyOptions()">
+                <option value="no">通常営業</option>
+                <option value="yes">特別イベント</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="section">
+        <label>PHRASE PATTERN</label>
+        <select id="bodyPattern"></select>
+    </div>
+
+    <div id="urlSection" style="display:none">
+        <div class="section">
+            <label>OFFICIAL HP URL</label>
+            <input type="text" id="hpURL" value="https://piku.page/@SDS_FF14">
+        </div>
+        <div class="section">
+            <label>RESERVATION URL</label>
+            <input type="text" id="reserveURL" value="https://forms.gle/EiFinDpVuuoZjFKs7">
+        </div>
+    </div>
+
+    <div class="section">
+        <label>CAST</label>
+        <div class="grid-2">
+            <div class="opt-btn cast-btn" onclick="tgl(this)" data-val="嫉妬">嫉妬</div>
+            <div class="opt-btn cast-btn" onclick="tgl(this)" data-val="暴食">暴食</div>
+            <div class="opt-btn cast-btn" onclick="tgl(this)" data-val="傲慢">傲慢</div>
+            <div class="opt-btn cast-btn" onclick="tgl(this)" data-val="色欲">色欲</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <label>LOCATION (住所表記)</label>
+        <select id="locType">
+            <option value="Elemental Kujata エンピレアム第4区54番地">標準 (フル表記)</option>
+            <option value="Kujata エンピレアム第4区54番地">短めエレ省</option>
+            <option value="Kujata エンピレアム 4-54">短め略</option>
+            <option value="Kujata エンピ 4-54">短め略極</option>
+            <option value="">表記なし</option>
+        </select>
+    </div>
+
+    <div class="section">
+        <label>STATUS BOX</label>
+        <div class="grid-3">
+            <div class="opt-btn status-btn accent" onclick="tgl(this)" data-val="【本日のご案内は終了しました】">終了</div>
+            <div class="opt-btn status-btn accent" onclick="tgl(this)" data-val="【本日の指名状況：満員】">満員</div>
+            <div class="opt-btn status-btn accent" onclick="tgl(this)" data-val="【現在、即日のご案内可能です】">即案内</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <label>SYSTEM (料金案内)</label>
+        <select id="priceSystem">
+            <option value="">(挿入なし)</option>
+            <option value="💰 基本無料（有料メニュー有）">基本無料</option>
+            <option value="💰 本日イベントにつき 10,000gil / 30min">イベント料金</option>
+        </select>
+    </div>
+
+    <div class="section">
+        <label>FREE MESSAGE</label>
+        <textarea id="freeNote" rows="2" placeholder="告知など"></textarea>
+    </div>
+
+    <button type="button" class="main-btn" onclick="generate()">文章を生成する</button>
+    <textarea id="resultText" readonly></textarea>
+    <div class="counter-wrap" style="text-align:left">合計: <span id="totalCount">0</span> / 140 文字</div>
+    <button type="button" class="btn-copy" onclick="copyText()">結果をコピーする</button>
+</div>
+
+<script>
+const shopTag = "#SDS_FF14";
+const evMark = "─── ✧ 𝐒𝐩𝐞𝐜𝐢𝐚𝐥 𝐄𝐯𝐞𝐧𝐭 ✧ ───";
+
+const pts = {
+    OPEN: {
+        no: [
+            "今夜、貴方を待ち受ける「罪」の化身たち。\n[CASTS]\n渇いた魂を潤す、特別なひと時を。\n従業員一同、お待ちしております。",
+            "今宵、扉が開かれます。\n[CASTS]── [COUNT]の深淵が、貴方様を甘く侵食しましょう。\nさあ、どの罪に堕ちますか？",
+            "今夜も、最高の悦楽へ招待しましょう。\n[CASTS]\n理性なんて入り口に捨てて、すべてを奪われに来て。"
+        ],
+        yes: [
+            evMark + "\n今夜は特別な夜。いつもとは違う罪の形を、その目に焼き付けて。\n[CASTS] が貴方を甘い奈落へ誘います。",
+            evMark + "\n一夜限りの特別な招待。選ばれしキャスト陣が貴方の「罪」を暴きましょう。\n[CASTS]\n心ゆくまで、溺れて。"
+        ]
+    },
+    CALL: {
+        no: ["[CASTS] が、今すぐ貴方を甘い悦楽へご案内いたします。\n（予約なしの飛び込み歓迎）", "現在 [CASTS] に空きがございます。\n独りの夜を、私たちの罪で埋めてみませんか？"],
+        yes: [evMark + "\n特別な宴、まだお席がございます。\n[CASTS] が貴方の理性を取り去りましょう。"]
+    },
+    RESERVE: {
+        no: [
+            "【公式HP案内版】\n今宵の「罪」の詳細は公式HPをご覧ください。\n[CASTS]\nメニューや規約もこちらからご確認いただけます。\n\n🌐 [H_URL]",
+            "【予約フォーム案内版】\n「罪」との逢瀬、確実なものにしませんか？\n[CASTS]\nHPの予約フォーム、または現地にてご予約を承っております。\n空きがあれば飛び込みも歓迎です。\n🔗 [R_URL]"
+        ],
+        yes: [
+            evMark + "\n特別イベント、事前予約受付中。\n[CASTS]\n一夜限りの罪の宴を、特等席で。\n\n🔗 [R_URL]"
+        ]
+    },
+    CLOSED: {
+        no: [
+            "今夜もご来店、誠にありがとうございました。\n貴方の罪が、いつまでも消えませんように。\nおやすみなさい。",
+            "今夜の営業、これにて閉門いたします。\n捧げられた多くの嘆息と熱に、心よりの感謝を。\n良い悪夢を。"
+        ],
+        yes: [
+            evMark + "\nイベント営業、無事に閉門いたしました。\n熱烈な夜をありがとうございました。",
+            evMark + "\n特別な一夜を共に過ごせたことに感謝を。\nまた、次の開門の日にお会いしましょう。"
+        ]
+    }
+};
+
+function tgl(el) { el.classList.toggle('active'); }
+function updateBodyOptions() {
+    const m = document.getElementById('mode').value;
+    const isEv = document.getElementById('isEvent').value;
+    const bodySelect = document.getElementById('bodyPattern');
+    document.getElementById('urlSection').style.display = (m === 'RESERVE') ? 'block' : 'none';
+    bodySelect.innerHTML = "";
+    pts[m][isEv].forEach((text, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        let preview = text.replace(evMark + "\n", "");
+        option.text = preview.substring(0, 18).replace('\n', ' ') + "...";
+        bodySelect.appendChild(option);
+    });
+}
+function generate() {
+    const mode = document.getElementById('mode').value;
+    const isEv = document.getElementById('isEvent').value;
+    const patternIndex = document.getElementById('bodyPattern').value;
+    const freeNote = document.getElementById('freeNote').value;
+    const loc = document.getElementById('locType').value;
+    const price = document.getElementById('priceSystem').value;
+    const hpURL = document.getElementById('hpURL').value;
+    const reserveURL = document.getElementById('reserveURL').value;
+    
+    const selectedCasts = Array.from(document.querySelectorAll('.cast-btn.active')).map(el => el.getAttribute('data-val'));
+    const kanji = ["零", "一つ", "二つ", "三つ", "四つ"];
+    const countText = kanji[selectedCasts.length] || selectedCasts.length + "つ";
+    const castString = selectedCasts.length > 0 ? `本日の罪：${selectedCasts.join(' / ')}` : "罪人不在";
+    
+    const selectedStatus = Array.from(document.querySelectorAll('.status-btn.active')).map(el => el.getAttribute('data-val'));
+
+    let title = "✦ 𝐈𝐧𝐟𝐨𝐫𝐦𝐚𝐭𝐢𝐨𝐧 ✦";
+    if (mode === 'OPEN') title = "✦ 𝐎𝐏𝐄𝐍 ✦";
+    else if (mode === 'CALL') title = "✦ 𝐍𝐨𝐰 𝐀𝐯𝐚𝐢𝐥𝐚𝐛𝐥𝐞 ✦";
+    else if (mode === 'CLOSED') title = "✦ 𝐂𝐥𝐨𝐬𝐞𝐝 ✦";
+    else if (mode === 'RESERVE') {
+        const pText = pts[mode][isEv][patternIndex];
+        title = pText.includes('予約フォーム') ? "✦ 𝐑𝐞𝐬𝐞𝐫𝐯𝐞𝐝 ✦" : "✦ 𝐈𝐧𝐟𝐨𝐫𝐦𝐚𝐭𝐢𝐨𝐧 ✦";
+    }
+
+    let result = `${title}\n`;
+    if (selectedStatus.length > 0) result += selectedStatus.join('\n') + "\n\n";
+
+    let body = pts[mode][isEv][patternIndex]
+                .replace('【公式HP案内版】\n', '').replace('【予約フォーム案内版】\n', '')
+                .replace('[CASTS]', castString)
+                .replace('[COUNT]', countText)
+                .replace('[H_URL]', hpURL)
+                .replace('[R_URL]', reserveURL);
+    
+    result += body.trim() + "\n\n";
+
+    if (freeNote.trim()) result += freeNote + "\n\n";
+    if (price) result += price + "\n";
+    if ((mode === 'OPEN' || mode === 'CALL') && loc) result += `📍 ${loc}\n`;
+    result += shopTag;
+
+    const resArea = document.getElementById('resultText');
+    resArea.value = result.trim();
+    document.getElementById('totalCount').innerText = result.trim().length;
+}
+
+updateBodyOptions();
+
+async function copyText() {
+    const textarea = document.getElementById('resultText');
+    if (!textarea.value) return;
+    try {
+        await navigator.clipboard.writeText(textarea.value);
+        alert("コピーしました！");
+    } catch (err) {
+        textarea.select();
+        document.execCommand('copy');
+        alert("コピーしました");
+    }
+}
+</script>
+</body>
+</html>
