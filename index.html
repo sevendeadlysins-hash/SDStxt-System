@@ -37,7 +37,7 @@
 <body>
 
 <div class="container">
-    <h1>𝐒𝐃𝐒 𝐆𝐄𝐍𝐄𝐑𝐀𝐓𝐎𝐑 v6.2</h1>
+    <h1>𝐒𝐃𝐒 𝐆𝐄𝐍𝐄𝐑𝐀𝐓𝐎𝐑 v6.3</h1>
 
     <div class="grid-2">
         <div>
@@ -138,49 +138,18 @@
 <script>
 let masterPhrases = [];
 let weeklyData = [];
-let currentLinkType = 'HP'; // 'HP' または 'F'
+let currentLinkType = 'HP'; 
+
+// 定数の定義（未定義エラー回避）
+const evMark = "─── ✧ 𝐒𝐩𝐞𝐜𝐢𝐚𝐥 𝐄𝐯𝐞𝐧𝐭 ✧ ───";
+const shopTag = "#SDS_FF14";
 
 const pts = {
-    OPEN: {
-        通常: [
-            "今夜、貴方を待ち受ける「罪」の化身たち。\n[CASTS]\n渇いた魂を潤す、特別なひと時を。\nお待ちしております。",
-            "今宵、扉が開かれます。\n[CASTS]\nどの罪に堕ちますか？",
-            "深淵の門が開き、宴が始まります。\n[CASTS]\n皆様のお越しを心よりお待ちしております。"
-        ],
-        特別: ["今夜は特別な夜。いつもとは違う罪の形を。\n[CASTS]"]
-    },
-    CALL: {
-        通常: [
-            "[CASTS] が、今すぐ貴方を甘い悦楽へご案内いたします。",
-            "現在 [CASTS] に空きがございます。お気軽にお越しください。",
-            "お席の用意が整いました。深淵にて [CASTS] がお待ちしております。"
-        ],
-        特別: ["特別な宴、まだお席がございます。\n[CASTS]"]
-    },
-    RESERVE: {
-        通常: [
-            "【公式HP】\n[CASTS]\n🌐 [H_URL]",
-            "【予約受付】\n[CASTS]\n🔗 [R_URL]",
-            "事前予約を承っております。\n[CASTS]\n詳細は下記リンクよりご確認ください。"
-        ],
-        特別: ["特別イベント予約受付中。\n[CASTS]"]
-    },
-    INFO: {
-        通常: [
-            "【𝐀𝐭𝐭𝐞𝐧𝐭𝐢𝐨𝐧】\n[CASTS]\n皆様のご確認をお願いいたします。",
-            "【𝐒𝐃𝐒 𝐈𝐧𝐟𝐨𝐫𝐦𝐚𝐭𝐢𝐨𝐧】\n[CASTS]",
-            "【𝐈𝐧𝐟𝐨𝐫𝐦𝐚𝐭𝐢𝐨𝐧】\n[CASTS]"
-        ],
-        特別: ["─── ✧ 𝐒𝐩𝐞𝐜𝐢𝐚𝐥 𝐄𝐯𝐞𝐧𝐭 ✧ ───\n[CASTS]"]
-    },
-    CLOSED: {
-        通常: [
-            "今夜もご来店、誠にありがとうございました。\n良い悪夢を。",
-            "今夜の営業、これにて閉門いたします。またの開門をお待ちしております。",
-            "本日の宴は終了いたしました。皆様、どうぞ安らかな眠りを。"
-        ],
-        特別: ["イベント営業、無事に閉門いたしました。ご来場感謝申し上げます。"]
-    }
+    OPEN: { 通常: ["今夜、貴方を待ち受ける「罪」の化身たち。\n[CASTS]\n渇いた魂を潤す、特別なひと時を。\nお待ちしております。"], 特別: ["今夜は特別な夜。いつもとは違う罪の形を。\n[CASTS]"] },
+    CALL: { 通常: ["[CASTS] が、今すぐ貴方を甘い悦楽へご案内いたします。"], 特別: ["特別な宴、まだお席がございます。\n[CASTS]"] },
+    RESERVE: { 通常: ["【公式HP】\n[CASTS]\n🌐 [H_URL]"], 特別: ["特別イベント予約受付中。\n[CASTS]"] },
+    INFO: { 通常: ["【𝐒𝐃𝐒 𝐈𝐧𝐟𝐨𝐫𝐦𝐚𝐭𝐢𝐨𝐧】\n[CASTS]"], 特別: ["─── ✧ 𝐒𝐩𝐞𝐜𝐢𝐚𝐥 𝐄𝐯𝐞𝐧𝐭 ✧ ───\n[CASTS]"] },
+    CLOSED: { 通常: ["今夜もご来店、誠にありがとうございました。\n良い悪夢を。"], 特別: ["イベント営業、無事に終了いたしました。ご来店感謝申し上げます。"] }
 };
 
 async function loadData() {
@@ -191,7 +160,7 @@ async function loadData() {
             return row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => cell.replace(/^"|"$/g, '').replace(/\\n/g, '\n').trim());
         }).slice(1);
         updateUI();
-    } catch (e) { console.error(e); updateUI(); }
+    } catch (e) { console.error("CSV読み込み失敗:", e); updateUI(); }
 }
 
 function setLinkType(type) {
@@ -214,10 +183,13 @@ function updateUI() {
 
     if(m !== 'WEEKLY') {
         bodySelect.innerHTML = "";
-        let options = [];
-        if(isEv !== 'CSV') options = [...(pts[m][isEv === '特別' ? '特別' : '通常'] || pts[m]['通常'])];
+        let options = [...(pts[m] ? (pts[m][isEv === '特別' ? '特別' : '通常'] || pts[m]['通常']) : [])];
+        
+        // CSVからの候補追加
         const csvOptions = masterPhrases.filter(p => p[0] === m && (isEv === 'CSV' || p[1] === isEv)).map(p => p[3]);
-        [...options, ...csvOptions].forEach(t => {
+        
+        const allOptions = [...new Set([...options, ...csvOptions])];
+        allOptions.forEach(t => {
             const opt = document.createElement('option'); opt.value = t;
             opt.text = t.substring(0, 25).replace(/\n/g, ' ') + "...";
             bodySelect.appendChild(opt);
@@ -260,12 +232,12 @@ function generate() {
         if(mode !== 'INFO'){
             const dVal = document.getElementById('openDate').value;
             const dRange = document.getElementById('dateRange').value;
-            result += dRange ? `📅 ${dRange}\n` : (dVal ? `📅 ${dVal.split('-')[1]}/${dVal.split('-')[2]}\n` : "");
+            let displayDate = dRange ? dRange : (dVal ? `${dVal.split('-')[1]}/${dVal.split('-')[2]}` : "");
+            if(displayDate) result += `📅 ${displayDate}\n`;
         }
         Array.from(document.querySelectorAll('.status-btn.active')).forEach(el => result += el.dataset.val + "\n");
 
-        let body = document.getElementById('bodyPattern').value;
-        // 検索キーの作成（RESERVEなら HP色欲 のように結合）
+        let body = document.getElementById('bodyPattern').value || "";
         let searchCast = (mode === 'RESERVE') ? currentLinkType + (castNames[0] || "全員") : (castNames[0] || "全員");
         const csvMatch = masterPhrases.find(p => p[0] === mode && (isEv === 'CSV' || p[1] === isEv) && p[2] === searchCast);
         if (csvMatch) body = csvMatch[3];
@@ -276,13 +248,20 @@ function generate() {
 
     if(document.getElementById('freeNote').value) result += document.getElementById('freeNote').value + '\n';
     if((mode==='OPEN' || mode==='CALL') && document.getElementById('locType').value) result += `📍 ${document.getElementById('locType').value}\n`;
+    
     result += `\n${shopTag}`;
     document.getElementById('resultText').value = result.trim().replace(/\n{3,}/g, '\n\n');
-    document.getElementById('totalCount').innerText = result.trim().length;
+    document.getElementById('totalCount').innerText = document.getElementById('resultText').value.length;
 }
 
-window.onload = () => { document.getElementById('openDate').value = new Date().toISOString().split('T')[0]; loadData(); };
-async function copyText() { await navigator.clipboard.writeText(document.getElementById('resultText').value); alert("コピーしました"); }
+window.onload = () => { 
+    document.getElementById('openDate').value = new Date().toISOString().split('T')[0]; 
+    loadData(); 
+};
+async function copyText() { 
+    await navigator.clipboard.writeText(document.getElementById('resultText').value); 
+    alert("コピーしました"); 
+}
 </script>
 </body>
 </html>
