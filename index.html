@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SDS System v3.5</title>
+    <title>SDS System v4.9</title>
     <style>
         :root { 
             --emerald-main: #4da699; --emerald-light: #e0f2f1; --emerald-dark: #2d6a61; 
@@ -29,9 +29,11 @@
         .opt-btn.active { background: var(--emerald-main); color: #fff; border-color: var(--emerald-main); }
         .opt-btn.accent.active { background: var(--accent); border-color: var(--accent); }
         .counter-wrap { text-align: right; font-size: 0.7rem; color: var(--emerald-main); margin-top: 4px; }
+        .counter-wrap.limit-over { color: var(--accent); font-weight: bold; }
         .main-btn { width: 100%; padding: 16px; background: var(--emerald-main); color: #fff; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; margin-top: 10px; cursor: pointer; }
         #resultText { height: 160px; margin-top: 15px; border: 2px solid var(--emerald-main); background: var(--input-bg); color: var(--text); font-size: 0.85rem; resize: none; width: 100%; padding: 10px; border-radius: 10px; }
         .btn-copy { width: 100%; padding: 12px; background: var(--emerald-light); color: var(--emerald-dark); border: none; border-radius: 10px; margin-top: 10px; font-weight: bold; cursor: pointer; }
+        .weekly-preview { font-size: 0.75rem; background: var(--emerald-light); padding: 8px; border-radius: 8px; margin-bottom: 8px; min-height: 20px; color: var(--emerald-dark); white-space: pre-wrap; }
     </style>
 </head>
 <body>
@@ -42,23 +44,43 @@
     <div class="grid-2">
         <div>
             <label>TYPE</label>
-            <select id="mode" onchange="updateBodyOptions()">
+            <select id="mode" onchange="updateUI()">
                 <option value="OPEN">【開店】OPEN</option>
                 <option value="CALL">【呼び込み】CALL</option>
+                <option value="WEEKLY">【告知】WEEKLY</option>
                 <option value="RESERVE">【告知】RESERVE</option>
                 <option value="CLOSED">【閉店】CLOSED</option>
             </select>
         </div>
         <div>
             <label>EVENT MODE</label>
-            <select id="isEvent" onchange="updateBodyOptions()">
+            <select id="isEvent" onchange="updateUI()">
                 <option value="no">通常営業</option>
                 <option value="yes">特別イベント</option>
+                <option value="csv">CSV追加分のみ</option>
             </select>
         </div>
     </div>
 
     <div class="section">
+        <label>SCHEDULE (空欄可)</label>
+        <div class="grid-2">
+            <input type="date" id="openDate">
+            <input type="text" id="openTime" placeholder="22:00〜">
+        </div>
+        <input type="text" id="dateRange" placeholder="期間指定時 (例: 2/15〜2/21)" style="margin-top:8px">
+    </div>
+
+    <div id="weeklySection" style="display:none" class="section">
+        <label>WEEKLY LIST</label>
+        <div id="weeklyList" class="weekly-preview"></div>
+        <div class="grid-2">
+            <button type="button" class="opt-btn" onclick="addWeekly()">リストに追加</button>
+            <button type="button" class="opt-btn accent" onclick="clearWeekly()">クリア</button>
+        </div>
+    </div>
+
+    <div id="patternSection" class="section">
         <label>PHRASE PATTERN</label>
         <select id="bodyPattern"></select>
     </div>
@@ -75,29 +97,25 @@
     </div>
 
     <div class="section">
-        <label>CAST</label>
+        <label>CAST (セリフに反映されます)</label>
         <div class="grid-2">
-            <div class="opt-btn cast-btn" onclick="tgl(this)" data-val="嫉妬">嫉妬</div>
-            <div class="opt-btn cast-btn" onclick="tgl(this)" data-val="暴食">暴食</div>
-            <div class="opt-btn cast-btn" onclick="tgl(this)" data-val="傲慢">傲慢</div>
-            <div class="opt-btn cast-btn" onclick="tgl(this)" data-val="色欲">色欲</div>
+            <div class="opt-btn cast-btn" onclick="tgl(this)" data-val="嫉妬" data-emoji="🐍">🐍 嫉妬</div>
+            <div class="opt-btn cast-btn" onclick="tgl(this)" data-val="暴食" data-emoji="🍴">🍴 暴食</div>
+            <div class="opt-btn cast-btn" onclick="tgl(this)" data-val="傲慢" data-emoji="👑">👑 傲慢</div>
+            <div class="opt-btn cast-btn" onclick="tgl(this)" data-val="色欲" data-emoji="🥀">🥀 色欲</div>
         </div>
     </div>
 
     <div class="section">
         <label>LOCATION (住所表記)</label>
         <select id="locType">
-            <option value="Elemental Kujata エンピレアム第4区54番地">標準 (フル表記)</option>
-            <option value="Kujata エンピレアム第4区54番地">短めエレ省</option>
-            <option value="Kujata エンピレアム 4-54">短め略</option>
-            <option value="Kujata エンピ 4-54">短め略極</option>
+            <option value="Elemental Kujata エンピレアム第4区54番地">Elemental Kujata エンピレアム第4区54番地</option>
+            <option value="Kujata エンピレアム第4区54番地">Kujata エンピレアム第4区54番地</option>
+            <option value="Kujata エンピレアム 4-54">Kujata エンピレアム 4-54</option>
+            <option value="Kujata エンピ 4-54">Kujata エンピ 4-54</option>
             <option value="">表記なし</option>
         </select>
-    </div>
-
-    <div class="section">
-        <label>STATUS BOX</label>
-        <div class="grid-3">
+        <div class="grid-3" style="margin-top:8px">
             <div class="opt-btn status-btn accent" onclick="tgl(this)" data-val="【本日のご案内は終了しました】">終了</div>
             <div class="opt-btn status-btn accent" onclick="tgl(this)" data-val="【本日の指名状況：満員】">満員</div>
             <div class="opt-btn status-btn accent" onclick="tgl(this)" data-val="【現在、即日のご案内可能です】">即案内</div>
@@ -105,142 +123,155 @@
     </div>
 
     <div class="section">
-        <label>SYSTEM (料金案内)</label>
-        <select id="priceSystem">
-            <option value="">(挿入なし)</option>
-            <option value="💰 基本無料（有料メニュー有）">基本無料</option>
-            <option value="💰 本日イベントにつき 10,000gil / 30min">イベント料金</option>
-        </select>
-    </div>
-
-    <div class="section">
         <label>FREE MESSAGE</label>
-        <textarea id="freeNote" rows="2" placeholder="告知など"></textarea>
+        <textarea id="freeNote" rows="2"></textarea>
     </div>
 
     <button type="button" class="main-btn" onclick="generate()">文章を生成する</button>
     <textarea id="resultText" readonly></textarea>
-    <div class="counter-wrap" style="text-align:left">合計: <span id="totalCount">0</span> / 140 文字</div>
-    <button type="button" class="btn-copy" onclick="copyText()">結果をコピーする</button>
+    <div id="counterArea" class="counter-wrap" style="text-align:left">
+        合計: <span id="totalCount">0</span> / 140 文字
+    </div>
+    <button type="button" class="btn-copy" onclick="copyText()">コピー</button>
 </div>
 
 <script>
+const dataUrl = "phrases.csv";
+let masterPhrases = [];
 const shopTag = "#SDS_FF14";
 const evMark = "─── ✧ 𝐒𝐩𝐞𝐜𝐢𝐚𝐥 𝐄𝐯𝐞𝐧𝐭 ✧ ───";
+let weeklyData = [];
+
+async function loadData() {
+    try {
+        const res = await fetch(dataUrl);
+        if (!res.ok) throw new Error('CSV not found');
+        const text = await res.text();
+        masterPhrases = text.split(/\r?\n/).filter(line => line.trim() !== "").map(row => {
+            return row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => 
+                cell.replace(/^"|"$/g, '').trim()
+            );
+        }).slice(1);
+        updateUI(); 
+    } catch (e) { console.error("Load Error:", e); }
+}
 
 const pts = {
     OPEN: {
-        no: [
-            "今夜、貴方を待ち受ける「罪」の化身たち。\n[CASTS]\n渇いた魂を潤す、特別なひと時を。\n従業員一同、お待ちしております。",
-            "今宵、扉が開かれます。\n[CASTS]── [COUNT]の深淵が、貴方様を甘く侵食しましょう。\nさあ、どの罪に堕ちますか？",
-            "今夜も、最高の悦楽へ招待しましょう。\n[CASTS]\n理性なんて入り口に捨てて、すべてを奪われに来て。"
-        ],
-        yes: [
-            evMark + "\n今夜は特別な夜。いつもとは違う罪の形を、その目に焼き付けて。\n[CASTS] が貴方を甘い奈落へ誘います。",
-            evMark + "\n一夜限りの特別な招待。選ばれしキャスト陣が貴方の「罪」を暴きましょう。\n[CASTS]\n心ゆくまで、溺れて。"
-        ]
+        no: ["今夜、貴方を待ち受ける「罪」の化身たち。\n[CASTS]\n渇いた魂を潤す、特別なひと時を。\nお待ちしております。", "今宵、扉が開かれます。\n[CASTS]\nどの罪に堕ちますか？"],
+        yes: [evMark + "\n今夜は特別な夜。いつもとは違う罪の形を。\n[CASTS]"]
     },
     CALL: {
-        no: ["[CASTS] が、今すぐ貴方を甘い悦楽へご案内いたします。\n（予約なしの飛び込み歓迎）", "現在 [CASTS] に空きがございます。\n独りの夜を、私たちの罪で埋めてみませんか？"],
-        yes: [evMark + "\n特別な宴、まだお席がございます。\n[CASTS] が貴方の理性を取り去りましょう。"]
+        no: ["[CASTS] が、今すぐ貴方を甘い悦楽へご案内いたします。", "現在 [CASTS] に空きがございます。"],
+        yes: [evMark + "\n特別な宴、まだお席がございます。\n[CASTS]"]
     },
     RESERVE: {
-        no: [
-            "【公式HP案内版】\n今宵の「罪」の詳細は公式HPをご覧ください。\n[CASTS]\nメニューや規約もこちらからご確認いただけます。\n\n🌐 [H_URL]",
-            "【予約フォーム案内版】\n「罪」との逢瀬、確実なものにしませんか？\n[CASTS]\nHPの予約フォーム、または現地にてご予約を承っております。\n空きがあれば飛び込みも歓迎です。\n🔗 [R_URL]"
-        ],
-        yes: [
-            evMark + "\n特別イベント、事前予約受付中。\n[CASTS]\n一夜限りの罪の宴を、特等席で。\n\n🔗 [R_URL]"
-        ]
+        no: ["【公式HP】\n[CASTS]\n🌐 [H_URL]", "【予約受付】\n[CASTS]\n🔗 [R_URL]"],
+        yes: [evMark + "\n特別イベント予約受付中。\n[CASTS]"]
     },
     CLOSED: {
-        no: [
-            "今夜もご来店、誠にありがとうございました。\n貴方の罪が、いつまでも消えませんように。\nおやすみなさい。",
-            "今夜の営業、これにて閉門いたします。\n捧げられた多くの嘆息と熱に、心よりの感謝を。\n良い悪夢を。"
-        ],
-        yes: [
-            evMark + "\nイベント営業、無事に閉門いたしました。\n熱烈な夜をありがとうございました。",
-            evMark + "\n特別な一夜を共に過ごせたことに感謝を。\nまた、次の開門の日にお会いしましょう。"
-        ]
+        no: ["今夜もご来店、誠にありがとうございました。\n良い悪夢を。", "今夜の営業、これにて閉門いたします。"],
+        yes: [evMark + "\nイベント営業、無事に閉門いたしました。"]
     }
 };
 
-function tgl(el) { el.classList.toggle('active'); }
-function updateBodyOptions() {
+function tgl(el) { el.classList.toggle('active'); updateUI(); }
+
+function updateUI() {
     const m = document.getElementById('mode').value;
     const isEv = document.getElementById('isEvent').value;
     const bodySelect = document.getElementById('bodyPattern');
+    
+    document.getElementById('weeklySection').style.display = (m === 'WEEKLY') ? 'block' : 'none';
+    document.getElementById('patternSection').style.display = (m === 'WEEKLY') ? 'none' : 'block';
     document.getElementById('urlSection').style.display = (m === 'RESERVE') ? 'block' : 'none';
-    bodySelect.innerHTML = "";
-    pts[m][isEv].forEach((text, index) => {
-        const option = document.createElement('option');
-        option.value = index;
-        let preview = text.replace(evMark + "\n", "");
-        option.text = preview.substring(0, 18).replace('\n', ' ') + "...";
-        bodySelect.appendChild(option);
-    });
+    
+    if(m !== 'WEEKLY') {
+        bodySelect.innerHTML = "";
+        let options = [];
+        if(isEv === 'no' || isEv === 'yes') options = [...pts[m][isEv]];
+        const csvOptions = masterPhrases.filter(p => p[0] === m).map(p => p[2]);
+        if(isEv === 'csv') options = csvOptions;
+        else options = [...options, ...csvOptions];
+        options.forEach((text) => {
+            const opt = document.createElement('option');
+            opt.value = text;
+            opt.text = text.substring(0, 20).replace('\n', ' ') + "...";
+            bodySelect.appendChild(opt);
+        });
+    }
 }
+
+function addWeekly() {
+    const dVal = document.getElementById('openDate').value;
+    const tVal = document.getElementById('openTime').value;
+    const dRange = document.getElementById('dateRange').value;
+    let dateStr = dRange ? dRange : "";
+    if(!dRange && dVal) {
+        const d = new Date(dVal);
+        dateStr = `${d.getMonth()+1}/${d.getDate()}(${["日","月","火","水","木","金","土"][d.getDay()]})`;
+    }
+    if(!dateStr && !tVal) return;
+    weeklyData.push(`${dateStr} ${tVal}`.trim());
+    document.getElementById('weeklyList').innerText = weeklyData.join('\n');
+}
+
+function clearWeekly() { weeklyData = []; document.getElementById('weeklyList').innerText = ""; }
+
 function generate() {
     const mode = document.getElementById('mode').value;
-    const isEv = document.getElementById('isEvent').value;
-    const patternIndex = document.getElementById('bodyPattern').value;
-    const freeNote = document.getElementById('freeNote').value;
-    const loc = document.getElementById('locType').value;
-    const price = document.getElementById('priceSystem').value;
+    const activeCastNames = Array.from(document.querySelectorAll('.cast-btn.active')).map(el => el.dataset.val);
+    const activeCastEmojis = Array.from(document.querySelectorAll('.cast-btn.active')).map(el => `${el.dataset.emoji}${el.dataset.val}`);
+    const status = Array.from(document.querySelectorAll('.status-btn.active')).map(el => el.dataset.val);
     const hpURL = document.getElementById('hpURL').value;
     const reserveURL = document.getElementById('reserveURL').value;
-    
-    const selectedCasts = Array.from(document.querySelectorAll('.cast-btn.active')).map(el => el.getAttribute('data-val'));
-    const kanji = ["零", "一つ", "二つ", "三つ", "四つ"];
-    const countText = kanji[selectedCasts.length] || selectedCasts.length + "つ";
-    const castString = selectedCasts.length > 0 ? `本日の罪：${selectedCasts.join(' / ')}` : "罪人不在";
-    
-    const selectedStatus = Array.from(document.querySelectorAll('.status-btn.active')).map(el => el.getAttribute('data-val'));
+    let result = "";
 
-    let title = "✦ 𝐈𝐧𝐟𝐨𝐫𝐦𝐚𝐭𝐢𝐨𝐧 ✦";
-    if (mode === 'OPEN') title = "✦ 𝐎𝐏𝐄𝐍 ✦";
-    else if (mode === 'CALL') title = "✦ 𝐍𝐨𝐰 𝐀𝐯𝐚𝐢𝐥𝐚𝐛𝐥𝐞 ✦";
-    else if (mode === 'CLOSED') title = "✦ 𝐂𝐥𝐨𝐬𝐞𝐝 ✦";
-    else if (mode === 'RESERVE') {
-        const pText = pts[mode][isEv][patternIndex];
-        title = pText.includes('予約フォーム') ? "✦ 𝐑𝐞𝐬𝐞𝐫𝐯𝐞𝐝 ✦" : "✦ 𝐈𝐧𝐟𝐨𝐫𝐦𝐚𝐭𝐢𝐨𝐧 ✦";
+    if(mode === 'WEEKLY') {
+        result = `✦ 𝐖𝐞𝐞𝐤𝐥𝐲 𝐒𝐜𝐡𝐞𝐝𝐮𝐥𝐞 ✦\n\n今週の予定をお知らせします。\n\n${weeklyData.join('\n')}\n`;
+        if(activeCastNames.length > 0) {
+            const randomCast = activeCastNames[Math.floor(Math.random() * activeCastNames.length)];
+            const filtered = masterPhrases.filter(p => p[0] === 'WEEKLY' && p[1] === randomCast);
+            if(filtered.length > 0) {
+                const pick = filtered[Math.floor(Math.random() * filtered.length)];
+                const emoji = document.querySelector(`.cast-btn[data-val="${pick[1]}"]`)?.dataset.emoji || "";
+                result += `\n${emoji}「${pick[2]}」\n`;
+            }
+        }
+    } else {
+        const title = mode === 'OPEN' ? '𝐎𝐏𝐄𝐍' : mode === 'CLOSED' ? '𝐂𝐥ｏｓｅｄ' : '𝐈ｎｆｏｒｍａｔｉｏｎ';
+        result = `✦ ${title} ✦\n`;
+        const dVal = document.getElementById('openDate').value;
+        const dRange = document.getElementById('dateRange').value;
+        if(dRange) result += `📅 ${dRange} ${document.getElementById('openTime').value}\n`;
+        else if(dVal) {
+            const d = new Date(dVal);
+            result += `📅 ${d.getMonth()+1}/${d.getDate()}(${["日","月","火","水","木","金","土"][d.getDay()]}) ${document.getElementById('openTime').value}\n`;
+        }
+        if(status.length) result += status.join('\n') + '\n';
+        result += '\n' + document.getElementById('bodyPattern').value
+                  .replace('[CASTS]', `本日の罪：${activeCastEmojis.join('/') || '不在'}`)
+                  .replace('[H_URL]', hpURL)
+                  .replace('[R_URL]', reserveURL) + '\n\n';
     }
-
-    let result = `${title}\n`;
-    if (selectedStatus.length > 0) result += selectedStatus.join('\n') + "\n\n";
-
-    let body = pts[mode][isEv][patternIndex]
-                .replace('【公式HP案内版】\n', '').replace('【予約フォーム案内版】\n', '')
-                .replace('[CASTS]', castString)
-                .replace('[COUNT]', countText)
-                .replace('[H_URL]', hpURL)
-                .replace('[R_URL]', reserveURL);
-    
-    result += body.trim() + "\n\n";
-
-    if (freeNote.trim()) result += freeNote + "\n\n";
-    if (price) result += price + "\n";
-    if ((mode === 'OPEN' || mode === 'CALL') && loc) result += `📍 ${loc}\n`;
-    result += shopTag;
-
-    const resArea = document.getElementById('resultText');
-    resArea.value = result.trim();
-    document.getElementById('totalCount').innerText = result.trim().length;
+    const free = document.getElementById('freeNote').value;
+    if(free) result += free + '\n';
+    if((mode==='OPEN' || mode==='CALL') && document.getElementById('locType').value) result += `📍 ${document.getElementById('locType').value}\n`;
+    result += `\n${shopTag}`;
+    document.getElementById('resultText').value = result.trim();
+    const count = result.trim().length;
+    document.getElementById('totalCount').innerText = count;
+    document.getElementById('counterArea').classList.toggle('limit-over', count > 140);
 }
 
-updateBodyOptions();
+window.onload = () => {
+    document.getElementById('openDate').value = new Date().toISOString().split('T')[0];
+    loadData();
+};
 
 async function copyText() {
-    const textarea = document.getElementById('resultText');
-    if (!textarea.value) return;
-    try {
-        await navigator.clipboard.writeText(textarea.value);
-        alert("コピーしました！");
-    } catch (err) {
-        textarea.select();
-        document.execCommand('copy');
-        alert("コピーしました");
-    }
+    try { await navigator.clipboard.writeText(document.getElementById('resultText').value); alert("コピーしました"); }
+    catch(e) { alert("コピー失敗"); }
 }
 </script>
 </body>
