@@ -37,7 +37,7 @@
 <body>
 
 <div class="container">
-    <h1>𝐒𝐃𝐒 𝐆𝐄𝐍𝐄𝐑𝐀𝐓𝐎𝐑 v6.3</h1>
+    <h1>𝐒𝐃𝐒 𝐆𝐄𝐍𝐄𝐑𝐀𝐓𝐎𝐑 v6.2</h1>
 
     <div class="grid-2">
         <div>
@@ -140,7 +140,7 @@ let masterPhrases = [];
 let weeklyData = [];
 let currentLinkType = 'HP'; 
 
-// 定数の定義（未定義エラー回避）
+// 定数の定義
 const evMark = "─── ✧ 𝐒𝐩𝐞𝐜𝐢𝐚𝐥 𝐄𝐯𝐞𝐧𝐭 ✧ ───";
 const shopTag = "#SDS_FF14";
 
@@ -185,7 +185,6 @@ function updateUI() {
         bodySelect.innerHTML = "";
         let options = [...(pts[m] ? (pts[m][isEv === '特別' ? '特別' : '通常'] || pts[m]['通常']) : [])];
         
-        // CSVからの候補追加
         const csvOptions = masterPhrases.filter(p => p[0] === m && (isEv === 'CSV' || p[1] === isEv)).map(p => p[3]);
         
         const allOptions = [...new Set([...options, ...csvOptions])];
@@ -240,7 +239,11 @@ function generate() {
         let body = document.getElementById('bodyPattern').value || "";
         let searchCast = (mode === 'RESERVE') ? currentLinkType + (castNames[0] || "全員") : (castNames[0] || "全員");
         const csvMatch = masterPhrases.find(p => p[0] === mode && (isEv === 'CSV' || p[1] === isEv) && p[2] === searchCast);
-        if (csvMatch) body = csvMatch[3];
+        
+        if (csvMatch) {
+            const emoji = document.querySelector(`[data-val="${castNames[0]}"]`)?.dataset.emoji || "";
+            body = `${emoji}「${csvMatch[3]}」`;
+        }
 
         const castDisp = castNames.length === 0 ? "── 今宵、全ての罪を揃えて ──" : `本日の罪：${castEmojis.join('/')}`;
         result += '\n' + body.replace('[CASTS]', castDisp).replace('[H_URL]', document.getElementById('hpURL').value).replace('[R_URL]', document.getElementById('reserveURL').value) + '\n\n';
