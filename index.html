@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SDS System v4.9</title>
+    <title>SDS System v5.5</title>
     <style>
         :root { 
             --emerald-main: #4da699; --emerald-light: #e0f2f1; --emerald-dark: #2d6a61; 
@@ -117,8 +117,8 @@
         </select>
         <div class="grid-3" style="margin-top:8px">
             <div class="opt-btn status-btn accent" onclick="tgl(this)" data-val="【本日のご案内は終了しました】">終了</div>
-            <div class="opt-btn status-btn accent" onclick="tgl(this)" data-val="【本日の指名状況：満員】">満員</div>
-            <div class="opt-btn status-btn accent" onclick="tgl(this)" data-val="【現在、即日のご案内可能です】">即案内</div>
+            <div class="opt-btn status-btn accent" onclick="tgl(this)" data-val="【満員御礼】">満員</div>
+            <div class="opt-btn status-btn accent" onclick="tgl(this)" data-val="【現在、即時のご案内可能です】">即案内</div>
         </div>
     </div>
 
@@ -149,7 +149,7 @@ async function loadData() {
         const text = await res.text();
         masterPhrases = text.split(/\r?\n/).filter(line => line.trim() !== "").map(row => {
             return row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => 
-                cell.replace(/^"|"$/g, '').trim()
+                cell.replace(/^"|"$/g, '').replace(/\\n/g, '\n').trim()
             );
         }).slice(1);
         updateUI(); 
@@ -159,19 +159,19 @@ async function loadData() {
 const pts = {
     OPEN: {
         no: ["今夜、貴方を待ち受ける「罪」の化身たち。\n[CASTS]\n渇いた魂を潤す、特別なひと時を。\nお待ちしております。", "今宵、扉が開かれます。\n[CASTS]\nどの罪に堕ちますか？"],
-        yes: [evMark + "\n今夜は特別な夜。いつもとは違う罪の形を。\n[CASTS]"]
+        yes: ["今夜は特別な夜。いつもとは違う罪の形を。\n[CASTS]"]
     },
     CALL: {
         no: ["[CASTS] が、今すぐ貴方を甘い悦楽へご案内いたします。", "現在 [CASTS] に空きがございます。"],
-        yes: [evMark + "\n特別な宴、まだお席がございます。\n[CASTS]"]
+        yes: ["特別な宴、まだお席がございます。\n[CASTS]"]
     },
     RESERVE: {
         no: ["【公式HP】\n[CASTS]\n🌐 [H_URL]", "【予約受付】\n[CASTS]\n🔗 [R_URL]"],
-        yes: [evMark + "\n特別イベント予約受付中。\n[CASTS]"]
+        yes: ["特別イベント予約受付中。\n[CASTS]"]
     },
     CLOSED: {
         no: ["今夜もご来店、誠にありがとうございました。\n良い悪夢を。", "今夜の営業、これにて閉門いたします。"],
-        yes: [evMark + "\nイベント営業、無事に閉門いたしました。"]
+        yes: ["イベント営業、無事に閉門いたしました。"]
     }
 };
 
@@ -220,45 +220,72 @@ function clearWeekly() { weeklyData = []; document.getElementById('weeklyList').
 
 function generate() {
     const mode = document.getElementById('mode').value;
+    const isEv = document.getElementById('isEvent').value;
     const activeCastNames = Array.from(document.querySelectorAll('.cast-btn.active')).map(el => el.dataset.val);
     const activeCastEmojis = Array.from(document.querySelectorAll('.cast-btn.active')).map(el => `${el.dataset.emoji}${el.dataset.val}`);
     const status = Array.from(document.querySelectorAll('.status-btn.active')).map(el => el.dataset.val);
     const hpURL = document.getElementById('hpURL').value;
     const reserveURL = document.getElementById('reserveURL').value;
+    const openTimeField = document.getElementById('openTime').value;
     let result = "";
 
+    let title = "𝐈𝐧𝐟𝐨𝐫𝐦𝐚𝐭𝐢𝐨𝐧";
+    let specialHeader = (isEv === 'yes') ? evMark + "\n" : "";
+
+    if (mode === 'OPEN') title = "𝐎𝐏𝐄𝐍";
+    else if (mode === 'CLOSED') title = "𝐂𝐥𝐨𝐬𝐞𝐝";
+    else if (mode === 'RESERVE') title = "𝐑𝐞𝐬𝐞𝐫𝐯𝐞𝐝";
+    else if (mode === 'CALL') title = "𝐍𝐨𝐰 𝐀𝐯𝐚𝐢𝐥𝐚𝐛𝐥𝐞";
+    else if (mode === 'WEEKLY') {
+        title = (weeklyData.length === 0 && !openTimeField) ? "𝐇𝐨𝐥𝐢𝐝𝐚𝐲" : "𝐖𝐞𝐞𝐤𝐥𝐲 𝐒𝐜𝐡𝐞𝐝𝐮𝐥𝐞";
+    }
+
+    // キャストの判定（全モード共通）
+    let targetCast = activeCastNames.length > 0 ? activeCastNames[Math.floor(Math.random() * activeCastNames.length)] : "全員";
+    const csvPhraseForCast = masterPhrases.find(p => p[0] === mode && p[1] === targetCast);
+
     if(mode === 'WEEKLY') {
-        result = `✦ 𝐖𝐞𝐞𝐤𝐥𝐲 𝐒𝐜𝐡𝐞𝐝𝐮𝐥𝐞 ✦\n\n今週の予定をお知らせします。\n\n${weeklyData.join('\n')}\n`;
-        if(activeCastNames.length > 0) {
-            const randomCast = activeCastNames[Math.floor(Math.random() * activeCastNames.length)];
-            const filtered = masterPhrases.filter(p => p[0] === 'WEEKLY' && p[1] === randomCast);
-            if(filtered.length > 0) {
-                const pick = filtered[Math.floor(Math.random() * filtered.length)];
-                const emoji = document.querySelector(`.cast-btn[data-val="${pick[1]}"]`)?.dataset.emoji || "";
-                result += `\n${emoji}「${pick[2]}」\n`;
-            }
+        result = `${specialHeader}✦ ${title} ✦\n\n${weeklyData.length > 0 ? '今週の予定をお知らせします。\n\n' + weeklyData.join('\n') + '\n' : '本日は定休日を頂いております。\n'}`;
+        // WEEKLYの場合はCSVからランダム1件(Cast一致)を取得
+        const filtered = masterPhrases.filter(p => p[0] === 'WEEKLY' && p[1] === targetCast);
+        if(filtered.length > 0) {
+            const pick = filtered[Math.floor(Math.random() * filtered.length)];
+            const emojiEl = document.querySelector(`.cast-btn[data-val="${pick[1]}"]`);
+            const emoji = emojiEl ? emojiEl.dataset.emoji : ""; 
+            result += `\n${emoji}「${pick[2]}」\n`;
         }
     } else {
-        const title = mode === 'OPEN' ? '𝐎𝐏𝐄𝐍' : mode === 'CLOSED' ? '𝐂𝐥ｏｓｅｄ' : '𝐈ｎｆｏｒｍａｔｉｏｎ';
-        result = `✦ ${title} ✦\n`;
+        result = `${specialHeader}✦ ${title} ✦\n`;
         const dVal = document.getElementById('openDate').value;
         const dRange = document.getElementById('dateRange').value;
-        if(dRange) result += `📅 ${dRange} ${document.getElementById('openTime').value}\n`;
+        if(dRange) result += `📅 ${dRange} ${openTimeField}\n`;
         else if(dVal) {
             const d = new Date(dVal);
-            result += `📅 ${d.getMonth()+1}/${d.getDate()}(${["日","月","火","水","木","金","土"][d.getDay()]}) ${document.getElementById('openTime').value}\n`;
+            result += `📅 ${d.getMonth()+1}/${d.getDate()}(${["日","月","火","水","木","金","土"][d.getDay()]}) ${openTimeField}\n`;
         }
         if(status.length) result += status.join('\n') + '\n';
-        result += '\n' + document.getElementById('bodyPattern').value
-                  .replace('[CASTS]', `本日の罪：${activeCastEmojis.join('/') || '不在'}`)
+
+        // 本文の決定
+        let bodyText = document.getElementById('bodyPattern').value;
+        
+        // 【新機能】誰も選択していないとき、CSVの「全員」用セリフがあれば差し替える
+        if (activeCastNames.length === 0 && csvPhraseForCast) {
+            bodyText = csvPhraseForCast[2];
+        }
+
+        // 置換処理
+        const castDisplay = activeCastEmojis.length > 0 ? `本日の罪：${activeCastEmojis.join('/')}` : "";
+        result += '\n' + bodyText
+                  .replace('[CASTS]', castDisplay)
                   .replace('[H_URL]', hpURL)
                   .replace('[R_URL]', reserveURL) + '\n\n';
     }
+
     const free = document.getElementById('freeNote').value;
     if(free) result += free + '\n';
     if((mode==='OPEN' || mode==='CALL') && document.getElementById('locType').value) result += `📍 ${document.getElementById('locType').value}\n`;
     result += `\n${shopTag}`;
-    document.getElementById('resultText').value = result.trim();
+    document.getElementById('resultText').value = result.trim().replace(/\n{3,}/g, '\n\n');
     const count = result.trim().length;
     document.getElementById('totalCount').innerText = count;
     document.getElementById('counterArea').classList.toggle('limit-over', count > 140);
